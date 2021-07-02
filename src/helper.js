@@ -125,9 +125,7 @@ async function createOrUpdateS3ReplicationRole(
 function getPolicyDocument(sourceBucket, targetBucketConfigs) {
   const targetBucketArns = [];
 
-  for (const targetBucketConfig of targetBucketConfigs) {
-    targetBucketArns.push(`${S3_PREFIX}${getBucketName(targetBucketConfig)}/*`);
-  }
+  targetBucketArns.push(`${S3_PREFIX}${getBucketName(targetBucketConfigs)}/*`);
 
   return JSON.stringify({
     Version: "2012-10-17",
