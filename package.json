@@ -1,6 +1,6 @@
 {
   "name": "serverless-s3-two-way-replication-plugin",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A plugin to setup two way replication S3 buckets",
   "scripts": {
     "test": "echo to be defined"
