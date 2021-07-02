@@ -5,6 +5,10 @@
   "scripts": {
     "test": "echo to be defined"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/joelRiveraKushki/s3TwoWayReplication"
+  },
   "main": "src/index.js",
   "authors": ["Joel Rivera", "Diego Benavides"],
   "keywords": [
