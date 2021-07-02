@@ -1,0 +1,20 @@
+{
+  "name": "serverless-s3-two-way-replication-plugin",
+  "version": "0.1",
+  "description": "A plugin to setup two way replication S3 buckets",
+  "scripts": {
+    "test": "echo to be defined"
+  },
+  "main": "src/index.js",
+  "authors": ["Joel Rivera", "Diego Benavides"],
+  "keywords": [
+    "serverless",
+    "s3",
+    "two way replication",
+    "aws"
+  ],
+  "dependencies": {
+    "aws-sdk": "2.889.0",
+    "chalk": "4.1.1"
+  }
+}
