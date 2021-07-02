@@ -48,16 +48,21 @@ function setupTwoWayReplicationBuckets(serverless, replicationConfigMap) {
     serverless
   )) {
     const mainBucketConfig = twoWayReplicationConfig.mainBucket;
-    const mainRegion = getRegion(mainBucketConfig);
-    const mainBucketName = getBucketName(mainBucketConfig);
     const replicationBucketConfig = twoWayReplicationConfig.replicationBucket;
+    const mainRegion = getRegion(mainBucketConfig);
+    const replicationRegion = getRegion(replicationBucketConfig)
+    const mainBucketName = getBucketName(mainBucketConfig);
+    const replicationBucketName = getBucketName(replicationBucketConfig);
 
     setupReplicationConfigForMainAndReplicationBuckets(
       serverless,
       replicationConfigMap,
       mainBucketName,
+      replicationBucketName,
+      mainBucketConfig,
       replicationBucketConfig,
-      mainRegion
+      mainRegion,
+      replicationRegion
     );
   }
 }
@@ -65,21 +70,36 @@ function setupTwoWayReplicationBuckets(serverless, replicationConfigMap) {
 function setupReplicationConfigForMainAndReplicationBuckets(
   serverless,
   replicationConfigMap,
-  mainBucket,
+  mainBucketName,
+  replicationBucketName,
+  mainBucketConfig,
   replicationBucketConfig,
-  mainRegion
+  mainRegion,
+  replicationRegion
 ) {
   const replicationConfigMainBucket = {
     rules: createS3RulesForBucket(
       serverless,
-      mainBucket,
+      mainBucketName,
       replicationBucketConfig
     ),
     targetBucketConfigs: replicationBucketConfig,
     region: mainRegion,
   };
 
-  replicationConfigMap.set(mainBucket, replicationConfigMainBucket);
+  replicationConfigMap.set(mainBucketName, replicationConfigMainBucket);
+
+  const mainConfigMainBucket = {
+    rules: createS3RulesForBucket(
+      serverless,
+      replicationBucketName,
+      mainBucketConfig
+    ),
+    targetBucketConfigs: mainBucketConfig,
+    region: replicationRegion,
+  };
+
+  replicationConfigMap.set(replicationBucketName, mainConfigMainBucket);
 }
 
 async function createOrUpdateS3ReplicationRole(
@@ -198,15 +218,15 @@ async function createReplicationRoleForEachBucket(
   serverless,
   replicationConfigMap
 ) {
-  for (const mainBucket of replicationConfigMap.keys()) {
-    const mainReplicationConfig = replicationConfigMap.get(mainBucket);
+  for (const bucket of replicationConfigMap.keys()) {
+    const mainReplicationConfig = replicationConfigMap.get(bucket);
     mainReplicationConfig.role = await createOrUpdateS3ReplicationRole(
       serverless,
-      mainBucket,
+      bucket,
       mainReplicationConfig.targetBucketConfigs,
       mainReplicationConfig.region
     );
-    replicationConfigMap.set(mainBucket, mainReplicationConfig);
+    replicationConfigMap.set(bucket, mainReplicationConfig);
   }
 }
 
