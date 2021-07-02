@@ -15,10 +15,6 @@ function getServiceName(serverless) {
   return serverless.service.getServiceName();
 }
 
-function getStage(serverless) {
-  return serverless.service.getStage();
-}
-
 function getTwoWayReplicationConfigs(serverless) {
   return serverless.service.custom.s3TwoWayReplicationPlugin.twoWayReplication;
 }
@@ -94,7 +90,7 @@ async function createOrUpdateS3ReplicationRole(
 ) {
   const iam = new aws.IAM();
 
-  const roleName = `${getStage(serverless)}-${getServiceName(
+  const roleName = `${getServiceName(
     serverless
   )}-${mainRegion}-s3-rep-role`;
 
@@ -244,7 +240,7 @@ function createS3RulesForBucket(
   serverless.cli.log(
     `${LOG_PREFIX} Creating replication rule between ${chalk.green(
       mainBucket
-    )} and ${chalk.green(targetBucket)} S3 buckets`
+    )} and ${chalk.green(targetBucket)}`
   );
   return rules;
 }
