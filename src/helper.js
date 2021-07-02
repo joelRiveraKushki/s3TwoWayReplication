@@ -12,14 +12,17 @@ async function getAccountId() {
 }
 
 function getServiceName(serverless) {
+  serverless.cli.log(`${LOG_PREFIX} getServiceName`);
   return serverless.service.getServiceName();
 }
 
 function getStage(serverless) {
+  serverless.cli.log(`${LOG_PREFIX} get stage`);
   return serverless.service.getStage();
 }
 
 function getTwoWayReplicationConfigs(serverless) {
+  serverless.cli.log(`${LOG_PREFIX} getTwoWayReplicationConfigs`);
   return serverless.service.custom.s3TwoWayReplicationPlugin.twoWayReplication;
 }
 
@@ -34,8 +37,8 @@ async function setupS3Replication(serverless) {
 
     await createReplicationRoleForEachBucket(serverless, replicationConfigMap);
     await putBucketReplicationsForReplicationConfigMap(
-      serverless,
-      replicationConfigMap
+        serverless,
+        replicationConfigMap
     );
   }
   serverless.cli.log(`${LOG_PREFIX} Finished S3 replication plugin`);
@@ -45,39 +48,39 @@ async function setupS3Replication(serverless) {
 
 function setupTwoWayReplicationBuckets(serverless, replicationConfigMap) {
   serverless.cli.log(
-    `${LOG_PREFIX} Starting setup of bidirectional replication buckets`
+      `${LOG_PREFIX} Starting setup of bidirectional replication buckets`
   );
 
   for (const twoWayReplicationConfig of getTwoWayReplicationConfigs(
-    serverless
+      serverless
   )) {
     const mainBucketConfig = twoWayReplicationConfig.mainBucket;
-    const mainRegion = getRegion(mainBucketConfig);
-    const mainBucketName = getBucketName(mainBucketConfig);
+    const mainRegion = getRegion(mainBucketConfig,serverless);
+    const mainBucketName = getBucketName(mainBucketConfig,serverless);
     const replicationBucketConfig = twoWayReplicationConfig.replicationBucket;
 
     setupReplicationConfigForMainAndReplicationBuckets(
-      serverless,
-      replicationConfigMap,
-      mainBucketName,
-      replicationBucketConfig,
-      mainRegion
+        serverless,
+        replicationConfigMap,
+        mainBucketName,
+        replicationBucketConfig,
+        mainRegion
     );
   }
 }
 
 function setupReplicationConfigForMainAndReplicationBuckets(
-  serverless,
-  replicationConfigMap,
-  mainBucket,
-  replicationBucketConfig,
-  mainRegion
+    serverless,
+    replicationConfigMap,
+    mainBucket,
+    replicationBucketConfig,
+    mainRegion
 ) {
   const replicationConfigMainBucket = {
     rules: createS3RulesForBucket(
-      serverless,
-      mainBucket,
-      replicationBucketConfig
+        serverless,
+        mainBucket,
+        replicationBucketConfig
     ),
     targetBucketConfigs: replicationBucketConfig,
     region: mainRegion,
@@ -87,15 +90,15 @@ function setupReplicationConfigForMainAndReplicationBuckets(
 }
 
 async function createOrUpdateS3ReplicationRole(
-  serverless,
-  mainBucket,
-  replicationBucketConfigs,
-  mainRegion
+    serverless,
+    mainBucket,
+    replicationBucketConfigs,
+    mainRegion
 ) {
   const iam = new aws.IAM();
 
   const roleName = `${getStage(serverless)}-${getServiceName(
-    serverless
+      serverless
   )}-${mainRegion}-s3-rep-role`;
 
   const createRoleRequest = {
@@ -118,7 +121,7 @@ async function createOrUpdateS3ReplicationRole(
   const putRolePolicyRequest = {
     RoleName: roleName,
     PolicyName: "s3-replication-policy",
-    PolicyDocument: getPolicyDocument(mainBucket, replicationBucketConfigs),
+    PolicyDocument: getPolicyDocument(mainBucket, replicationBucketConfigs,serverless),
   };
 
   await iam.putRolePolicy(putRolePolicyRequest).promise();
@@ -126,11 +129,11 @@ async function createOrUpdateS3ReplicationRole(
   return roleName;
 }
 
-function getPolicyDocument(sourceBucket, targetBucketConfigs) {
+function getPolicyDocument(sourceBucket, targetBucketConfigs,serverless) {
   const targetBucketArns = [];
 
   for (const targetBucketConfig of targetBucketConfigs) {
-    targetBucketArns.push(`${S3_PREFIX}${getBucketName(targetBucketConfig)}/*`);
+    targetBucketArns.push(`${S3_PREFIX}${getBucketName(targetBucketConfig,serverless)}/*`);
   }
 
   return JSON.stringify({
@@ -179,8 +182,8 @@ function getAssumeRolePolicyDocument() {
 }
 
 async function putBucketReplicationsForReplicationConfigMap(
-  serverless,
-  replicationConfigMap
+    serverless,
+    replicationConfigMap
 ) {
   const s3 = new aws.S3();
 
@@ -190,7 +193,7 @@ async function putBucketReplicationsForReplicationConfigMap(
       Bucket: mainBucket,
       ReplicationConfiguration: {
         Role: `arn:aws:iam::${await getAccountId()}:role/${
-          mainReplicationConfig.role
+            mainReplicationConfig.role
         }`,
         Rules: mainReplicationConfig.rules,
       },
@@ -201,26 +204,27 @@ async function putBucketReplicationsForReplicationConfigMap(
 }
 
 async function createReplicationRoleForEachBucket(
-  serverless,
-  replicationConfigMap
+    serverless,
+    replicationConfigMap
 ) {
+  serverless.cli.log(`${LOG_PREFIX} Creating replication rol `);
   for (const mainBucket of replicationConfigMap.keys()) {
     const mainReplicationConfig = replicationConfigMap.get(mainBucket);
     mainReplicationConfig.role = await createOrUpdateS3ReplicationRole(
-      serverless,
-      mainBucket,
-      mainReplicationConfig.targetBucketConfigs,
-      mainReplicationConfig.region
+        serverless,
+        mainBucket,
+        mainReplicationConfig.targetBucketConfigs,
+        mainReplicationConfig.region
     );
     replicationConfigMap.set(mainBucket, mainReplicationConfig);
   }
 }
 
 function createS3RulesForBucket(
-  serverless,
-  mainBucket,
-  replicationBucketConfig,
-  currentRules
+    serverless,
+    mainBucket,
+    replicationBucketConfig,
+    currentRules
 ) {
   const rules = currentRules || [];
 
@@ -242,26 +246,26 @@ function createS3RulesForBucket(
   });
 
   serverless.cli.log(
-    `${LOG_PREFIX} Creating replication rule between ${chalk.green(
-      mainBucket
-    )} and ${chalk.green(targetBucket)} S3 buckets`
+      `${LOG_PREFIX} Creating replication rule between ${chalk.green(
+          mainBucket
+      )} and ${chalk.green(targetBucket)} S3 buckets`
   );
   return rules;
 }
 
 async function allSpecifiedBucketsExist(serverless) {
   let allBucketsExist = true;
-
+  serverless.cli.log(`${LOG_PREFIX} verifying if bucket exist`);
   if (getTwoWayReplicationConfigs(serverless)) {
     for (const twoWayReplicationConfig of getTwoWayReplicationConfigs(
-      serverless
+        serverless
     )) {
-      const mainBucket = getBucketName(twoWayReplicationConfig.mainBucket);
+      const mainBucket = getBucketName(twoWayReplicationConfig.mainBucket,serverless);
       if (!(await validateBucketExists(serverless, mainBucket)))
         allBucketsExist = false;
 
       const replicationBucket = getBucketName(
-        twoWayReplicationConfig.replicationBucket
+          twoWayReplicationConfig.replicationBucket
       );
       if (!(await validateBucketExists(serverless, replicationBucket)))
         allBucketsExist = false;
@@ -273,20 +277,20 @@ async function allSpecifiedBucketsExist(serverless) {
 
 async function validateBucketExists(serverless, bucketName) {
   const s3 = new aws.S3();
-
+  serverless.cli.log(`${LOG_PREFIX} validate bucketExists`);
   try {
     await s3
-      .headBucket({
-        Bucket: bucketName,
-        ExpectedBucketOwner: `${await getAccountId()}`,
-      })
-      .promise();
+        .headBucket({
+          Bucket: bucketName,
+          ExpectedBucketOwner: `${await getAccountId()}`,
+        })
+        .promise();
   } catch (e) {
     if (e.code === "NotFound") {
       serverless.cli.log(
-        `${LOG_PREFIX} ${chalk.red(
-          `Bucket ${bucketName} does not exist yet. Plugin will only be executed when all buckets exist`
-        )}`
+          `${LOG_PREFIX} ${chalk.red(
+              `Bucket ${bucketName} does not exist yet. Plugin will only be executed when all buckets exist`
+          )}`
       );
 
       return false;
@@ -296,11 +300,13 @@ async function validateBucketExists(serverless, bucketName) {
   return true;
 }
 
-function getBucketName(bucketConfig) {
+function getBucketName(bucketConfig,serverless) {
+  serverless.cli.log(`${LOG_PREFIX} get bucket name`);
   return Object.values(bucketConfig)[0];
 }
 
-function getRegion(bucketConfig) {
+function getRegion(bucketConfig,serverless) {
+  serverless.cli.log(`${LOG_PREFIX} verifying if bucket exist`);
   return Object.keys(bucketConfig)[0];
 }
 
